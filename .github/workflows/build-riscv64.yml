@@ -32,7 +32,7 @@ jobs:
         run: |
           python3 -m venv /tmp/build-venv
           . /tmp/build-venv/bin/activate
-          pip install --upgrade pip maturin
+          pip install --upgrade pip maturin cffi
 
       - name: Build wheel
         run: |
