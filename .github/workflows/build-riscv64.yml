@@ -37,7 +37,7 @@ jobs:
       - name: Build wheel
         run: |
           . /tmp/build-venv/bin/activate
-          maturin build --release --out /tmp/wheels/ --manifest-path src/rust/Cargo.toml
+          maturin build --release --manylinux off --out /tmp/wheels/ --manifest-path src/rust/Cargo.toml
 
       - name: Verify platform tag
         run: |
