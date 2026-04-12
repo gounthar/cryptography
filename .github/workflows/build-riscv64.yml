@@ -38,7 +38,19 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Build wheel
-        run: uvx --python 3.14 --with maturin --with cffi --with setuptools maturin build --release --manylinux off --out /tmp/wheels/ --manifest-path src/rust/Cargo.toml
+        run: |
+          # Create a venv so maturin targets a Python that has cffi installed.
+          # uvx isolates its tool env from the target Python, so cffi passed
+          # via --with is not visible to cargo build.rs when it invokes
+          # build_openssl.py via PYO3_PYTHON.
+          uv venv /tmp/buildenv
+          source /tmp/buildenv/bin/activate
+          uv pip install cffi setuptools maturin
+          maturin build \
+            --release \
+            --manylinux off \
+            --out /tmp/wheels/ \
+            --manifest-path src/rust/Cargo.toml
 
       - name: Verify platform tag
         run: |
