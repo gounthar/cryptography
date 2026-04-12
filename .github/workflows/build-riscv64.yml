@@ -46,6 +46,10 @@ jobs:
           uv venv /tmp/buildenv
           source /tmp/buildenv/bin/activate
           uv pip install cffi setuptools maturin
+          # Cargo's build.rs invokes Python via PYO3_PYTHON, which maturin sets
+          # to the base interpreter path, bypassing venv site-packages. Force it
+          # to the venv wrapper so cffi is visible.
+          export PYO3_PYTHON="$VIRTUAL_ENV/bin/python3"
           maturin build \
             --release \
             --manylinux off \
