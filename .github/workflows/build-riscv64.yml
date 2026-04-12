@@ -11,11 +11,12 @@ on:
     - cron: '0 2 * * 0'
 
 jobs:
-  build:
+  build-and-release:
     runs-on: ubuntu-24.04-riscv
     timeout-minutes: 180
     env:
       CARGO_NET_GIT_FETCH_WITH_CLI: "true"
+      GH_REPO: ${{ github.repository }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -30,8 +31,10 @@ jobs:
 
       - name: Setup Rust
         run: |
-          export PATH=$(echo "$PATH" | tr ':' '\n' | grep -v /opt/rust | tr '\n' ':' | sed 's/:$//')
-          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --default-toolchain stable
+          export PATH=$(echo "$PATH" | tr ':' '\n' | \
+            grep -v /opt/rust | tr '\n' ':' | sed 's/:$//')
+          curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs \
+            | sh -s -- -y --default-toolchain stable
           echo "$HOME/.cargo/bin" >> "$GITHUB_PATH"
 
       - name: Set up uv
@@ -69,43 +72,17 @@ jobs:
             fi
           done
 
-      - name: Upload wheel artifact
-        uses: actions/upload-artifact@v3
-        with:
-          name: wheel-riscv64
-          path: /tmp/wheels/*.whl
-          retention-days: 90
-
-  release:
-    needs: build
-    runs-on: ubuntu-24.04-riscv
-    if: success()
-    env:
-      GH_REPO: ${{ github.repository }}
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download wheel artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: wheel-riscv64
-          path: /tmp/wheels/
-
       - name: Get wheel info
         id: wheel_info
         run: |
           WHL=$(ls /tmp/wheels/*.whl | head -1)
           BASENAME=$(basename "$WHL")
           VERSION=$(echo "$BASENAME" | sed 's/^[^-]*-\([^-]*\)-.*/\1/')
-          echo "whl_path=$WHL" >> "$GITHUB_OUTPUT"
           echo "whl_name=$BASENAME" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Generate checksums
-        run: |
-          cd /tmp/wheels
-          sha256sum *.whl > SHA256SUMS
+        run: sha256sum /tmp/wheels/*.whl > /tmp/wheels/SHA256SUMS
 
       - name: Create or update release
         env:
@@ -125,11 +102,12 @@ jobs:
 
           Install:
           \`\`\`
-          pip install cryptography --find-links https://github.com/${{ github.repository }}/releases/download/$TAG/
+          pip install cryptography --find-links \
+            https://github.com/${{ github.repository }}/releases/download/$TAG/
           \`\`\`" \
             /tmp/wheels/*.whl \
             /tmp/wheels/SHA256SUMS
 
       - name: Cleanup
         if: always()
-        run: rm -rf /tmp/wheels
+        run: rm -rf /tmp/buildenv /tmp/wheels
