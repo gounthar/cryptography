@@ -156,7 +156,8 @@ mod _rust {
         #[pymodule_export]
         use crate::declarative_asn1::types::{
             non_root_python_to_rust, AnnotatedType, Annotation, BitString, Encoding,
-            GeneralizedTime, IA5String, Null, PrintableString, Size, Type, UtcTime, Variant,
+            GeneralizedTime, IA5String, Null, PrintableString, SetOf, Size, Tlv, Type, UtcTime,
+            Variant,
         };
     }
 
@@ -241,6 +242,12 @@ mod _rust {
         use crate::backend::kdf::kdf;
         #[pymodule_export]
         use crate::backend::keys::keys;
+        #[cfg(any(CRYPTOGRAPHY_IS_BORINGSSL, CRYPTOGRAPHY_IS_AWSLC))]
+        #[pymodule_export]
+        use crate::backend::mldsa::mldsa;
+        #[cfg(any(CRYPTOGRAPHY_IS_BORINGSSL, CRYPTOGRAPHY_IS_AWSLC))]
+        #[pymodule_export]
+        use crate::backend::mlkem::mlkem;
         #[pymodule_export]
         use crate::backend::poly1305::poly1305;
         #[pymodule_export]

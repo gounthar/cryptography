@@ -38,7 +38,7 @@ else:
 if sys.version_info < (3, 10):
     NoneType = type(None)
 else:
-    NoneType = types.NoneType  # type: ignore[valid-type]
+    NoneType = types.NoneType  # type: ignore[nonetype-type]
 
 from cryptography.hazmat.bindings._rust import declarative_asn1
 
@@ -133,7 +133,7 @@ def _normalize_field_type(
         annotation = declarative_asn1.Annotation()
 
     if annotation.size is not None and (
-        get_type_origin(field_type) is not builtins.list
+        get_type_origin(field_type) not in (builtins.list, SetOf)
         and field_type
         not in (
             builtins.bytes,
@@ -144,16 +144,34 @@ def _normalize_field_type(
         )
     ):
         raise TypeError(
-            f"field {field_name} has a SIZE annotation, but SIZE annotations "
-            f"are only supported for fields of types: [SEQUENCE OF, "
-            "BIT STRING, OCTET STRING, UTF8String, PrintableString, IA5String]"
+            f"field '{field_name}' has a SIZE annotation, but SIZE "
+            "annotations are only supported for fields of types: "
+            "[SEQUENCE OF, SET OF, BIT STRING, OCTET STRING, UTF8String, "
+            "PrintableString, IA5String]"
         )
 
+    if field_type is TLV:
+        if isinstance(annotation.encoding, Implicit):
+            raise TypeError(
+                f"field '{field_name}' has an IMPLICIT annotation, but "
+                "IMPLICIT annotations are not supported for TLV types."
+            )
+        elif annotation.default is not None:
+            raise TypeError(
+                f"field '{field_name}' has a DEFAULT annotation, but "
+                "DEFAULT annotations are not supported for TLV types."
+            )
+
     if hasattr(field_type, "__asn1_root__"):
-        annotated_root = field_type.__asn1_root__
-        if not isinstance(annotated_root, declarative_asn1.AnnotatedType):
-            raise TypeError(f"unsupported root type: {annotated_root}")
-        return annotated_root
+        root_type = field_type.__asn1_root__
+        if not isinstance(
+            root_type,
+            (declarative_asn1.Type.Sequence, declarative_asn1.Type.Set),
+        ):
+            raise TypeError(f"unsupported root type: {root_type}")
+        return declarative_asn1.AnnotatedType(
+            typing.cast(declarative_asn1.Type, root_type), annotation
+        )
     elif _is_union(field_type):
         union_args = get_type_args(field_type)
         if len(union_args) == 2 and NoneType in union_args:
@@ -161,6 +179,11 @@ def _normalize_field_type(
             optional_type = (
                 union_args[0] if union_args[1] is type(None) else union_args[1]
             )
+            if optional_type is TLV:
+                raise TypeError(
+                    "optional TLV types (`TLV | None`) are not "
+                    "currently supported"
+                )
             annotated_type = _normalize_field_type(optional_type, field_name)
 
             if not annotated_type.annotation.is_empty():
@@ -229,6 +252,11 @@ def _normalize_field_type(
             get_type_args(field_type)[0], field_name
         )
         rust_field_type = declarative_asn1.Type.SequenceOf(inner_type)
+    elif get_type_origin(field_type) is SetOf:
+        inner_type = _normalize_field_type(
+            get_type_args(field_type)[0], field_name
+        )
+        rust_field_type = declarative_asn1.Type.SetOf(inner_type)
     else:
         rust_field_type = declarative_asn1.non_root_python_to_rust(field_type)
 
@@ -255,7 +283,7 @@ def _type_to_variant(
         tag_name = get_type_args(tag_literal)[0]
 
         if hasattr(value_type, "__asn1_root__"):
-            rust_type = value_type.__asn1_root__.inner
+            rust_type = value_type.__asn1_root__
         else:
             rust_type = declarative_asn1.non_root_python_to_rust(value_type)
 
@@ -295,10 +323,14 @@ def _annotate_fields(
 
 def _register_asn1_sequence(cls: type[U]) -> None:
     raw_fields = get_type_hints(cls, include_extras=True)
-    root = declarative_asn1.AnnotatedType(
-        declarative_asn1.Type.Sequence(cls, _annotate_fields(raw_fields)),
-        declarative_asn1.Annotation(),
-    )
+    root = declarative_asn1.Type.Sequence(cls, _annotate_fields(raw_fields))
+
+    setattr(cls, "__asn1_root__", root)
+
+
+def _register_asn1_set(cls: type[U]) -> None:
+    raw_fields = get_type_hints(cls, include_extras=True)
+    root = declarative_asn1.Type.Set(cls, _annotate_fields(raw_fields))
 
     setattr(cls, "__asn1_root__", root)
 
@@ -334,6 +366,29 @@ if sys.version_info < (3, 11):
         _register_asn1_sequence(dataclass_cls)
         return dataclass_cls
 
+    @typing_extensions.dataclass_transform(kw_only_default=True)
+    def set(cls: type[U]) -> type[U]:
+        # We use `dataclasses.dataclass` to add an __init__ method
+        # to the class with keyword-only parameters.
+        if sys.version_info >= (3, 10):
+            dataclass_cls = dataclasses.dataclass(
+                repr=False,
+                eq=False,
+                # `match_args` was added in Python 3.10 and defaults
+                # to True
+                match_args=False,
+                # `kw_only` was added in Python 3.10 and defaults to
+                # False
+                kw_only=True,
+            )(cls)
+        else:
+            dataclass_cls = dataclasses.dataclass(
+                repr=False,
+                eq=False,
+            )(cls)
+        _register_asn1_set(dataclass_cls)
+        return dataclass_cls
+
 else:
 
     @typing.dataclass_transform(kw_only_default=True)
@@ -349,6 +404,19 @@ else:
         _register_asn1_sequence(dataclass_cls)
         return dataclass_cls
 
+    @typing.dataclass_transform(kw_only_default=True)
+    def set(cls: type[U]) -> type[U]:
+        # Only add an __init__ method, with keyword-only
+        # parameters.
+        dataclass_cls = dataclasses.dataclass(
+            repr=False,
+            eq=False,
+            match_args=False,
+            kw_only=True,
+        )(cls)
+        _register_asn1_set(dataclass_cls)
+        return dataclass_cls
+
 
 # TODO: replace with `Default[U]` once the min Python version is >= 3.12
 @dataclasses.dataclass(frozen=True)
@@ -356,13 +424,16 @@ class Default(typing.Generic[U]):
     value: U
 
 
+SetOf = declarative_asn1.SetOf
+
 Explicit = declarative_asn1.Encoding.Explicit
 Implicit = declarative_asn1.Encoding.Implicit
 Size = declarative_asn1.Size
 
 PrintableString = declarative_asn1.PrintableString
 IA5String = declarative_asn1.IA5String
-UtcTime = declarative_asn1.UtcTime
+UTCTime = declarative_asn1.UTCTime
 GeneralizedTime = declarative_asn1.GeneralizedTime
 BitString = declarative_asn1.BitString
+TLV = declarative_asn1.Tlv
 Null = declarative_asn1.Null
