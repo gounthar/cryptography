@@ -38,7 +38,7 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install cffi into build Python
-        run: /opt/python-3.12/bin/python3 -m pip install cffi
+        run: /opt/python-3.12/bin/python3 -m pip install cffi setuptools
 
       - name: Build wheel
         run: uvx --python 3.14 --with maturin --with cffi --with setuptools maturin build --release --manylinux off --out /tmp/wheels/ --manifest-path src/rust/Cargo.toml
