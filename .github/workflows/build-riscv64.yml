@@ -23,8 +23,27 @@ jobs:
 
       - name: Install system dependencies
         run: |
+          set -euo pipefail
+          # Probe for required headers/tools — only invoke apt when missing.
+          # The RISE riscv64 runner image has previously shipped without a
+          # functional dpkg state dir, which makes `apt-get install` fail
+          # with "Could not open lock file /var/lib/dpkg/lock-frontend".
+          missing=()
+          dpkg -s libssl-dev   >/dev/null 2>&1 || missing+=(libssl-dev)
+          dpkg -s libffi-dev   >/dev/null 2>&1 || missing+=(libffi-dev)
+          command -v pkg-config >/dev/null 2>&1 || missing+=(pkg-config)
+          if [ "${#missing[@]}" -eq 0 ]; then
+            echo "All required system dependencies already present."
+            exit 0
+          fi
+          echo "Missing: ${missing[*]}"
+          # Repair dpkg state if the runner image is incomplete.
+          if [ ! -e /var/lib/dpkg/lock-frontend ]; then
+            sudo mkdir -p /var/lib/dpkg/updates /var/lib/dpkg/info
+            sudo touch /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/lib/dpkg/status
+          fi
           sudo apt-get update || true
-          sudo apt-get install -y libssl-dev libffi-dev pkg-config
+          sudo apt-get install -y "${missing[@]}"
 
       - name: Setup Rust
         run: |
