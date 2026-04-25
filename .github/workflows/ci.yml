@@ -34,7 +34,6 @@ jobs:
           - {VERSION: "3.14", NOXSESSION: "tests", OPENSSL: {TYPE: "openssl", VERSION: "3.6.2", CONFIG_FLAGS: "no-legacy", NO_LEGACY: "1"}}
           - {VERSION: "3.14", NOXSESSION: "tests", NOXARGS: "--enable-fips=1", OPENSSL: {TYPE: "openssl", CONFIG_FLAGS: "enable-fips", VERSION: "3.6.2"}}
           - {VERSION: "3.14", NOXSESSION: "tests", OPENSSL: {TYPE: "openssl", VERSION: "3.0.20"}}
-          - {VERSION: "3.14", NOXSESSION: "tests", OPENSSL: {TYPE: "openssl", VERSION: "3.3.7"}}
           - {VERSION: "3.14", NOXSESSION: "tests", OPENSSL: {TYPE: "openssl", VERSION: "3.4.5"}}
           - {VERSION: "3.14", NOXSESSION: "tests", OPENSSL: {TYPE: "openssl", VERSION: "3.5.6"}}
           - {VERSION: "3.14", NOXSESSION: "tests", OPENSSL: {TYPE: "openssl", VERSION: "4.0.0"}}
@@ -42,18 +41,18 @@ jobs:
           - {VERSION: "3.14", NOXSESSION: "rust,tests", OPENSSL: {TYPE: "libressl", VERSION: "4.1.2"}}
           - {VERSION: "3.14", NOXSESSION: "rust,tests", OPENSSL: {TYPE: "libressl", VERSION: "4.2.1"}}
           - {VERSION: "3.14", NOXSESSION: "rust,tests", OPENSSL: {TYPE: "libressl", VERSION: "4.3.1"}}
-          # Latest commit on the BoringSSL main branch, as of Apr 19, 2026.
-          - {VERSION: "3.14", NOXSESSION: "rust,tests", OPENSSL: {TYPE: "boringssl", VERSION: "8313e239e50e4d240ac7fc04c8e1aa05d58ca0fc"}}
+          # Latest commit on the BoringSSL main branch, as of Apr 24, 2026.
+          - {VERSION: "3.14", NOXSESSION: "rust,tests", OPENSSL: {TYPE: "boringssl", VERSION: "439e53783a5f3829769f84bdd70a46f218fa10ed"}}
           # Latest tag of AWS-LC main branch, as of Apr 14, 2026.
           - {VERSION: "3.14", NOXSESSION: "rust,tests", OPENSSL: {TYPE: "aws-lc", VERSION: "v1.72.0"}}
-          # Latest commit on the OpenSSL master branch, as of Apr 20, 2026.
-          - {VERSION: "3.14", NOXSESSION: "tests", OPENSSL: {TYPE: "openssl", VERSION: "087bddcda9973671d52f94e63db32bfd6001fd1b"}}
+          # Latest commit on the OpenSSL master branch, as of Apr 24, 2026.
+          - {VERSION: "3.14", NOXSESSION: "tests", OPENSSL: {TYPE: "openssl", VERSION: "d31fbbeded371bf30695727841b2e8da855c7ffa"}}
           # Builds with various Rust versions. Includes MSRV and next
           # potential future MSRV.
           # noclippy due to: https://github.com/PyO3/pyo3/issues/5768
           - {VERSION: "3.14", NOXSESSION: "rust-noclippy,tests", RUST: "1.83.0"}
           - {VERSION: "3.14", NOXSESSION: "rust-noclippy,tests", RUST: "1.83.0", OPENSSL: {TYPE: "aws-lc", VERSION: "v1.72.0"}}
-          - {VERSION: "3.14", NOXSESSION: "rust-noclippy,tests", RUST: "1.83.0", OPENSSL: {TYPE: "boringssl", VERSION: "8313e239e50e4d240ac7fc04c8e1aa05d58ca0fc"}}
+          - {VERSION: "3.14", NOXSESSION: "rust-noclippy,tests", RUST: "1.83.0", OPENSSL: {TYPE: "boringssl", VERSION: "439e53783a5f3829769f84bdd70a46f218fa10ed"}}
           - {VERSION: "3.14", NOXSESSION: "rust,tests", RUST: "beta"}
           - {VERSION: "3.14", NOXSESSION: "rust,tests", RUST: "nightly"}
           - {VERSION: "3.14", NOXSESSION: "tests-rust-debug"}
@@ -163,6 +162,7 @@ jobs:
           - {IMAGE: "sid", NOXSESSION: "tests", RUNNER: "ubuntu-latest"}
           - {IMAGE: "ubuntu-jammy", NOXSESSION: "tests", RUNNER: "ubuntu-latest"}
           - {IMAGE: "ubuntu-noble", NOXSESSION: "tests", RUNNER: "ubuntu-latest"}
+          - {IMAGE: "ubuntu-resolute", NOXSESSION: "tests", RUNNER: "ubuntu-latest"}
           - {IMAGE: "ubuntu-rolling", NOXSESSION: "tests", RUNNER: "ubuntu-latest"}
           - {IMAGE: "fedora", NOXSESSION: "tests", RUNNER: "ubuntu-latest"}
           - {IMAGE: "centos-stream9", NOXSESSION: "tests", RUNNER: "ubuntu-latest"}
@@ -435,8 +435,8 @@ jobs:
             PATH: twisted
           - DOWNSTREAM: aws-encryption-sdk-python
             REPO: awslabs/aws-encryption-sdk-python
-            # Latest commit on the aws-encryption-sdk-python master branch, as of Apr 18, 2026.
-            REF: 73c7ddb0963b18499e622b5e626db03ef71a8aca
+            # Latest commit on the aws-encryption-sdk-python master branch, as of Apr 23, 2026.
+            REF: c00a58c97db3fb3a0304f6af1e31e093f6b9df87
             PATH: aws-encryption-sdk-python
           - DOWNSTREAM: aws-dynamodb-encryption-python
             REPO: awslabs/aws-dynamodb-encryption-python
@@ -460,13 +460,13 @@ jobs:
             PATH: mitmproxy
           - DOWNSTREAM: scapy
             REPO: secdev/scapy
-            # Latest commit on the scapy master branch, as of Apr 19, 2026.
-            REF: f6793df9d4165cd63ab4060e63a89b2a60e2a426
+            # Latest commit on the scapy master branch, as of Apr 24, 2026.
+            REF: 1745d390da0bee6e7c83270723f729c441999d00
             PATH: scapy
           - DOWNSTREAM: sigstore-python
             REPO: sigstore/sigstore-python
-            # Latest commit on the sigstore-python main branch, as of Apr 20, 2026.
-            REF: e6233b65596f684e1048ff4d695fb9df713224fb
+            # Latest commit on the sigstore-python main branch, as of Apr 22, 2026.
+            REF: 3a19f924b4f53aa075a9e1cf50870a6be31b530e
             PATH: sigstore-python
     name: "Downstream tests for ${{ matrix.DOWNSTREAM }}"
     timeout-minutes: 15

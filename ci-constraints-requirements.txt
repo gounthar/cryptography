@@ -18,11 +18,11 @@ build==1.2.2.post1 ; python_full_version < '3.9'
     # via
     #   cryptography (pyproject.toml:dev)
     #   check-sdist
-build==1.4.3 ; python_full_version >= '3.9'
+build==1.4.4 ; python_full_version >= '3.9'
     # via
     #   cryptography (pyproject.toml:dev)
     #   check-sdist
-certifi==2026.2.25
+certifi==2026.4.22
     # via
     #   cryptography (pyproject.toml:dev)
     #   requests
@@ -92,7 +92,7 @@ humanize==4.13.0 ; python_full_version == '3.9.*'
     # via nox
 humanize==4.15.0 ; python_full_version >= '3.10'
     # via nox
-idna==3.11
+idna==3.13
     # via requests
 imagesize==1.5.0 ; python_full_version < '3.10'
     # via sphinx
@@ -147,7 +147,7 @@ packaging==26.1
     #   sphinx
 pathspec==0.12.1 ; python_full_version < '3.9'
     # via check-sdist
-pathspec==1.0.4 ; python_full_version >= '3.9'
+pathspec==1.1.0 ; python_full_version >= '3.9'
     # via
     #   check-sdist
     #   mypy
