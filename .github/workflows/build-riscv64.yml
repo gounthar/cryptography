@@ -7,8 +7,6 @@ on:
         description: 'Upstream release tag to build from'
         required: false
         type: string
-  schedule:
-    - cron: '0 2 * * 0'
 
 jobs:
   build:
