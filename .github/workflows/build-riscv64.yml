@@ -55,7 +55,26 @@ jobs:
         uses: astral-sh/setup-uv@v7
 
       - name: Install cffi into build Python
-        run: /opt/python-3.12/bin/python3 -m pip install cffi setuptools
+        run: |
+          set -euo pipefail
+          # The previous hardcoded path /opt/python-3.12/bin/python3 was specific
+          # to an older RISE runner image. Detect the build Python dynamically:
+          # prefer the newest /opt/python-* install, fall back to PATH.
+          BUILD_PY=""
+          for cand in /opt/python-*/bin/python3; do
+            [ -x "$cand" ] && BUILD_PY="$cand"
+          done
+          if [ -z "$BUILD_PY" ]; then
+            BUILD_PY=$(command -v python3 || true)
+          fi
+          if [ -z "$BUILD_PY" ]; then
+            echo "No system python3 found; relying on uvx --with cffi --with setuptools at build time."
+            exit 0
+          fi
+          echo "Using build Python: $BUILD_PY ($($BUILD_PY --version))"
+          "$BUILD_PY" -m pip install --user cffi setuptools \
+            || "$BUILD_PY" -m pip install cffi setuptools \
+            || echo "pip install failed; build will rely on uvx-injected cffi/setuptools."
 
       - name: Build wheel
         run: uvx --python 3.14 --with maturin --with cffi --with setuptools maturin build --release --manylinux off --out /tmp/wheels/ --manifest-path src/rust/Cargo.toml
