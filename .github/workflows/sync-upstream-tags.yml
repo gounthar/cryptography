@@ -22,6 +22,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
+          token: ${{ secrets.WORKFLOW_TOKEN }}
 
       - name: Find missing upstream release tags
         id: diff
@@ -58,12 +59,17 @@ jobs:
 
       - name: Fetch and push new tags to fork
         if: steps.diff.outputs.latest_new != ''
+        env:
+          WORKFLOW_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
         run: |
           set -euo pipefail
+          git remote set-url origin \
+            "https://x-access-token:${WORKFLOW_TOKEN}@github.com/${{ github.repository }}"
           while read -r TAG; do
             [ -z "$TAG" ] && continue
             echo "Mirroring $TAG"
-            git fetch https://github.com/pyca/cryptography.git "refs/tags/$TAG:refs/tags/$TAG"
+            git fetch https://github.com/pyca/cryptography.git \
+              "refs/tags/$TAG:refs/tags/$TAG"
             git push origin "refs/tags/$TAG"
           done < new_tags.txt
 
