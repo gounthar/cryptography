@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       release_tag:
-        description: 'Upstream release tag to build from (pyca uses no v prefix, e.g. 48.0.1)'
+        description: 'Upstream release tag to build from (pyca uses no v prefix, e.g. 49.0.0; a leading v or riscv64- prefix is tolerated)'
         required: false
         type: string
 
@@ -21,11 +21,14 @@ jobs:
           fetch-depth: 0
 
       # actions/checkout only sees tags already mirrored into this fork, so a
-      # not-yet-synced upstream tag (or a wrong prefix, e.g. v48.0.1 vs 48.0.1)
-      # used to fail at checkout with a cryptic "tag not found". Fetch upstream
-      # tags here to close the sync gap, and on a miss print the real available
-      # tags so a bad prefix is immediately obvious. Skipped when no tag is
-      # given (builds the fork's default branch, as before).
+      # not-yet-synced upstream tag used to fail at checkout with a cryptic "tag
+      # not found". Fetch upstream tags here to close the sync gap. We also
+      # normalize the requested tag: pyca tags carry no 'v' prefix (e.g. 49.0.0),
+      # but it is easy to dispatch with 'v49.0.0' or even the fork's own
+      # 'riscv64-v49.0.0' output tag, so resolve to whichever form actually
+      # exists instead of failing. On a real miss, print the available tags so a
+      # bad input is obvious. Skipped when no tag is given (builds the fork's
+      # default branch, as before).
       - name: Resolve and check out release tag
         if: inputs.release_tag != ''
         env:
@@ -35,14 +38,30 @@ jobs:
           UPSTREAM="https://github.com/pyca/cryptography.git"
           git remote add upstream "$UPSTREAM" 2>/dev/null || git remote set-url upstream "$UPSTREAM"
           git fetch --tags --force upstream
-          if ! git rev-parse -q --verify "refs/tags/${RELEASE_TAG}^{commit}" >/dev/null 2>&1; then
-            echo "::error::Release tag '${RELEASE_TAG}' not found in fork or upstream (${UPSTREAM})."
+
+          # Try the tag as given, then with the 'riscv64-' and 'v' prefixes
+          # stripped, then with a 'v' re-added, and use the first that resolves.
+          requested="${RELEASE_TAG}"
+          bare="${RELEASE_TAG#riscv64-}"
+          bare="${bare#v}"
+          resolved=""
+          for cand in "$requested" "$bare" "v${bare}"; do
+            if git rev-parse -q --verify "refs/tags/${cand}^{commit}" >/dev/null 2>&1; then
+              resolved="$cand"
+              break
+            fi
+          done
+          if [ -z "$resolved" ]; then
+            echo "::error::Release tag '${RELEASE_TAG}' not found in fork or upstream (${UPSTREAM}). Tried: ${requested}, ${bare}, v${bare}."
             echo "Latest available upstream tags:"
             git tag -l --sort=-v:refname | head -20
             exit 1
           fi
-          git checkout -f "refs/tags/${RELEASE_TAG}"
-          echo "Building from ${RELEASE_TAG} ($(git rev-parse --short HEAD))"
+          if [ "$resolved" != "$requested" ]; then
+            echo "::notice::Normalized requested tag '${requested}' to '${resolved}'."
+          fi
+          git checkout -f "refs/tags/${resolved}"
+          echo "Building from ${resolved} ($(git rev-parse --short HEAD))"
 
       - name: Install system dependencies
         run: |
