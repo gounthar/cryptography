@@ -3,16 +3,13 @@
 # for complete details.
 
 import datetime
+import enum
 import re
 import sys
 import typing
+from typing import Annotated
 
 import pytest
-
-if sys.version_info < (3, 9):
-    from typing_extensions import Annotated
-else:
-    from typing import Annotated
 
 from cryptography.hazmat import asn1
 
@@ -33,6 +30,14 @@ class TestTypesAPI:
         with pytest.raises(ValueError, match="invalid PrintableString: café"):
             asn1.PrintableString("café")
 
+    def test_hash_printable_string(self) -> None:
+        assert hash(asn1.PrintableString("MyString")) == hash(
+            asn1.PrintableString("MyString")
+        )
+        assert hash(asn1.PrintableString("MyString")) != hash(
+            asn1.PrintableString("OtherString")
+        )
+
     def test_repr_ia5_string(self) -> None:
         my_string = "MyString"
         assert repr(asn1.IA5String(my_string)) == f"IA5String({my_string!r})"
@@ -45,6 +50,14 @@ class TestTypesAPI:
         with pytest.raises(ValueError, match="invalid IA5String: café"):
             asn1.IA5String("café")
 
+    def test_hash_ia5_string(self) -> None:
+        assert hash(asn1.IA5String("MyString")) == hash(
+            asn1.IA5String("MyString")
+        )
+        assert hash(asn1.IA5String("MyString")) != hash(
+            asn1.IA5String("OtherString")
+        )
+
     def test_utc_time_as_datetime(self) -> None:
         dt = datetime.datetime(
             2000, 1, 1, 10, 10, 10, tzinfo=datetime.timezone.utc
@@ -56,6 +69,16 @@ class TestTypesAPI:
             2000, 1, 1, 10, 10, 10, tzinfo=datetime.timezone.utc
         )
         assert repr(asn1.UTCTime(dt)) == f"UTCTime({dt!r})"
+
+    def test_hash_utc_time(self) -> None:
+        dt = datetime.datetime(
+            2000, 1, 1, 10, 10, 10, tzinfo=datetime.timezone.utc
+        )
+        other_dt = datetime.datetime(
+            2001, 1, 1, 10, 10, 10, tzinfo=datetime.timezone.utc
+        )
+        assert hash(asn1.UTCTime(dt)) == hash(asn1.UTCTime(dt))
+        assert hash(asn1.UTCTime(dt)) != hash(asn1.UTCTime(other_dt))
 
     def test_invalid_utc_time(self) -> None:
         with pytest.raises(
@@ -111,6 +134,18 @@ class TestTypesAPI:
         )
         assert repr(asn1.GeneralizedTime(dt)) == f"GeneralizedTime({dt!r})"
 
+    def test_hash_generalized_time(self) -> None:
+        dt = datetime.datetime(
+            2000, 1, 1, 10, 10, 10, 300000, tzinfo=datetime.timezone.utc
+        )
+        other_dt = datetime.datetime(
+            2001, 1, 1, 10, 10, 10, 300000, tzinfo=datetime.timezone.utc
+        )
+        assert hash(asn1.GeneralizedTime(dt)) == hash(asn1.GeneralizedTime(dt))
+        assert hash(asn1.GeneralizedTime(dt)) != hash(
+            asn1.GeneralizedTime(other_dt)
+        )
+
     def test_invalid_generalized_time(self) -> None:
         with pytest.raises(
             ValueError,
@@ -131,6 +166,17 @@ class TestTypesAPI:
         assert (
             repr(asn1.BitString(data, 2))
             == f"BitString(data={data!r}, padding_bits=2)"
+        )
+
+    def test_hash_bitstring(self) -> None:
+        assert hash(asn1.BitString(b"\x01\x02\x30", 2)) == hash(
+            asn1.BitString(b"\x01\x02\x30", 2)
+        )
+        assert hash(asn1.BitString(b"\x01\x02\x30", 2)) != hash(
+            asn1.BitString(b"\x01\x02\x40", 2)
+        )
+        assert hash(asn1.BitString(b"\x01\x02\x30", 2)) != hash(
+            asn1.BitString(b"\x01\x02\x30", 3)
         )
 
     def test_invalid_bitstring(self) -> None:
@@ -203,14 +249,16 @@ class TestSequenceAPI:
         # The kw-only init is only enforced in Python >= 3.10, which is
         # when the parameter `kw_only` for `dataclasses.datalass` was
         # added.
+        # Bare `type: ignore` because mypy <2.3 reports this as `misc` and
+        # mypy >=2.3 reports it as `call-arg`.
         if sys.version_info < (3, 10):
-            assert Example(5).foo == 5  # type: ignore[misc]
+            assert Example(5).foo == 5  # type: ignore
         else:
             with pytest.raises(
                 TypeError,
                 match="takes 1 positional argument but 2 were given",
             ):
-                Example(5)  # type: ignore[misc]
+                Example(5)  # type: ignore
 
     def test_fail_malformed_root_type(self) -> None:
         @asn1.sequence
@@ -378,9 +426,17 @@ class TestSequenceAPI:
         set_of = declarative_asn1.Type.SetOf(ann_type)
         assert set_of._0 is ann_type
 
-        my_list: typing.List[int] = list()
+        my_list: list[int] = list()
         choice = declarative_asn1.Type.Choice(my_list)
         assert choice._0 is my_list
+
+        my_value_map: dict = {}
+        value_set = declarative_asn1.Type.ValueSet(
+            type(None), ann_type, my_value_map
+        )
+        assert value_set._0 is type(None)
+        assert value_set._1 is ann_type
+        assert value_set._2 is my_value_map
 
     def test_fields_of_variant_encoding(self) -> None:
         from cryptography.hazmat.bindings._rust import declarative_asn1
@@ -510,14 +566,16 @@ class TestSetAPI:
         # The kw-only init is only enforced in Python >= 3.10, which is
         # when the parameter `kw_only` for `dataclasses.datalass` was
         # added.
+        # Bare `type: ignore` because mypy <2.3 reports this as `misc` and
+        # mypy >=2.3 reports it as `call-arg`.
         if sys.version_info < (3, 10):
-            assert Example(5).foo == 5  # type: ignore[misc]
+            assert Example(5).foo == 5  # type: ignore
         else:
             with pytest.raises(
                 TypeError,
                 match="takes 1 positional argument but 2 were given",
             ):
-                Example(5)  # type: ignore[misc]
+                Example(5)  # type: ignore
 
     def test_fail_malformed_root_type(self) -> None:
         @asn1.set
@@ -531,3 +589,46 @@ class TestSetAPI:
             @asn1.set
             class Example:
                 foo: Invalid
+
+
+class TestValueSetAPI:
+    def test_fail_non_enum(self) -> None:
+        with pytest.raises(
+            TypeError,
+            match=re.escape(
+                "value sets can only be defined from enum.Enum subclasses"
+            ),
+        ):
+
+            @asn1.value_set(int)
+            class Example:
+                pass
+
+    def test_fail_empty_enum(self) -> None:
+        with pytest.raises(
+            TypeError,
+            match="value set 'Example' must have at least one member",
+        ):
+
+            @asn1.value_set(int)
+            class Example(enum.Enum):
+                pass
+
+    def test_fail_member_value_of_wrong_type(self) -> None:
+        with pytest.raises(
+            TypeError,
+            match="member 'B' of value set 'Example' must have a value "
+            "of type 'int', got: 'str'",
+        ):
+
+            @asn1.value_set(int)
+            class Example(enum.Enum):
+                A = 1
+                B = "b"
+
+    def test_fail_unsupported_value_type(self) -> None:
+        with pytest.raises(
+            TypeError,
+            match="cannot handle type",
+        ):
+            asn1.value_set(float)

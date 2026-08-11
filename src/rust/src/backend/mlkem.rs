@@ -2,9 +2,8 @@
 // 2.0, and the BSD License. See the LICENSE file in the root of this repository
 // for complete details.
 
-use pyo3::types::PyAnyMethods;
-
 use cryptography_openssl::mlkem::MlKemVariant;
+use pyo3::types::PyAnyMethods;
 
 use crate::backend::utils;
 use crate::buf::CffiBuf;
@@ -124,8 +123,7 @@ impl MlKem768PrivateKey {
         &self,
         py: pyo3::Python<'p>,
     ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-        let cryptography_key_parsing::pkcs8::MlKemPrivateKey::Seed(seed) =
-            cryptography_key_parsing::pkcs8::mlkem_seed_from_pkey(&self.pkey)?;
+        let seed = cryptography_openssl::mlkem::mlkem_seed_raw(&self.pkey)?;
         Ok(pyo3::types::PyBytes::new(py, &seed))
     }
 
@@ -275,8 +273,7 @@ impl MlKem1024PrivateKey {
         &self,
         py: pyo3::Python<'p>,
     ) -> CryptographyResult<pyo3::Bound<'p, pyo3::types::PyBytes>> {
-        let cryptography_key_parsing::pkcs8::MlKemPrivateKey::Seed(seed) =
-            cryptography_key_parsing::pkcs8::mlkem_seed_from_pkey(&self.pkey)?;
+        let seed = cryptography_openssl::mlkem::mlkem_seed_raw(&self.pkey)?;
         Ok(pyo3::types::PyBytes::new(py, &seed))
     }
 

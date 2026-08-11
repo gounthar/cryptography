@@ -14,7 +14,7 @@ from cryptography.hazmat.primitives.asymmetric import padding, rsa
 
 from .utils import wycheproof_tests
 
-_DIGESTS: typing.Dict[str, typing.Union[hashes.HashAlgorithm, None]] = {
+_DIGESTS: dict[str, typing.Union[hashes.HashAlgorithm, None]] = {
     "SHA-1": hashes.SHA1(),
     "SHA-224": hashes.SHA224(),
     "SHA-256": hashes.SHA256(),
@@ -248,7 +248,11 @@ def test_rsa_oaep_encryption(backend, wycheproof):
     if wycheproof.valid or (
         wycheproof.acceptable
         and not (
-            (rust_openssl.CRYPTOGRAPHY_IS_AWSLC or backend._fips_enabled)
+            (
+                rust_openssl.CRYPTOGRAPHY_IS_AWSLC
+                or rust_openssl.CRYPTOGRAPHY_OPENSSL_410_OR_GREATER
+                or backend._fips_enabled
+            )
             and wycheproof.has_flag("SmallIntegerCiphertext")
         )
     ):

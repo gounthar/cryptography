@@ -18,6 +18,7 @@ from cryptography.hazmat.bindings._rust.openssl import (
     hpke,
     kdf,
     keys,
+    keywrap,
     mldsa,
     mlkem,
     poly1305,
@@ -40,6 +41,7 @@ __all__ = [
     "hpke",
     "kdf",
     "keys",
+    "keywrap",
     "mldsa",
     "mlkem",
     "openssl_version",
@@ -58,6 +60,7 @@ CRYPTOGRAPHY_OPENSSL_309_OR_GREATER: bool
 CRYPTOGRAPHY_OPENSSL_320_OR_GREATER: bool
 CRYPTOGRAPHY_OPENSSL_330_OR_GREATER: bool
 CRYPTOGRAPHY_OPENSSL_350_OR_GREATER: bool
+CRYPTOGRAPHY_OPENSSL_410_OR_GREATER: bool
 
 class Providers: ...
 

@@ -168,7 +168,7 @@ fn private_key_from_pkey<'p>(
         openssl::pkey::Id::DSA => Ok(crate::backend::dsa::private_key_from_pkey(pkey)
             .into_pyobject(py)?
             .into_any()),
-        openssl::pkey::Id::DH => Ok(crate::backend::dh::private_key_from_pkey(pkey)
+        openssl::pkey::Id::DH => Ok(crate::backend::dh::private_key_from_pkey(py, pkey)?
             .into_pyobject(py)?
             .into_any()),
 
@@ -177,11 +177,15 @@ fn private_key_from_pkey<'p>(
             CRYPTOGRAPHY_IS_BORINGSSL,
             CRYPTOGRAPHY_IS_AWSLC
         )))]
-        openssl::pkey::Id::DHX => Ok(crate::backend::dh::private_key_from_pkey(pkey)
+        openssl::pkey::Id::DHX => Ok(crate::backend::dh::private_key_from_pkey(py, pkey)?
             .into_pyobject(py)?
             .into_any()),
-        #[cfg(any(CRYPTOGRAPHY_IS_BORINGSSL, CRYPTOGRAPHY_IS_AWSLC))]
-        id if cryptography_openssl::mlkem::is_mlkem_pkey_type(id) => {
+        #[cfg(any(
+            CRYPTOGRAPHY_IS_BORINGSSL,
+            CRYPTOGRAPHY_IS_AWSLC,
+            CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
+        ))]
+        _ if cryptography_openssl::mlkem::is_mlkem_pkey(pkey) => {
             match cryptography_openssl::mlkem::MlKemVariant::from_pkey(pkey) {
                 cryptography_openssl::mlkem::MlKemVariant::MlKem768 => {
                     Ok(crate::backend::mlkem::mlkem768_private_key_from_pkey(pkey)
@@ -195,8 +199,12 @@ fn private_key_from_pkey<'p>(
                 }
             }
         }
-        #[cfg(any(CRYPTOGRAPHY_IS_BORINGSSL, CRYPTOGRAPHY_IS_AWSLC))]
-        id if cryptography_openssl::mldsa::is_mldsa_pkey_type(id) => {
+        #[cfg(any(
+            CRYPTOGRAPHY_IS_BORINGSSL,
+            CRYPTOGRAPHY_IS_AWSLC,
+            CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
+        ))]
+        _ if cryptography_openssl::mldsa::is_mldsa_pkey(pkey) => {
             match cryptography_openssl::mldsa::MlDsaVariant::from_pkey(pkey) {
                 cryptography_openssl::mldsa::MlDsaVariant::MlDsa44 => {
                     Ok(crate::backend::mldsa::mldsa44_private_key_from_pkey(pkey)
@@ -221,11 +229,11 @@ fn private_key_from_pkey<'p>(
     }
 }
 
-fn private_key_from_parsed<'p>(
-    py: pyo3::Python<'p>,
+fn private_key_from_parsed(
+    py: pyo3::Python<'_>,
     parsed: cryptography_key_parsing::ParsedPrivateKey,
     unsafe_skip_rsa_key_validation: bool,
-) -> CryptographyResult<pyo3::Bound<'p, pyo3::PyAny>> {
+) -> CryptographyResult<pyo3::Bound<'_, pyo3::PyAny>> {
     match parsed {
         cryptography_key_parsing::ParsedPrivateKey::Pkey(pkey) => {
             private_key_from_pkey(py, &pkey, unsafe_skip_rsa_key_validation)
@@ -233,10 +241,10 @@ fn private_key_from_parsed<'p>(
     }
 }
 
-fn public_key_from_parsed<'p>(
-    py: pyo3::Python<'p>,
+fn public_key_from_parsed(
+    py: pyo3::Python<'_>,
     parsed: cryptography_key_parsing::ParsedPublicKey,
-) -> CryptographyResult<pyo3::Bound<'p, pyo3::PyAny>> {
+) -> CryptographyResult<pyo3::Bound<'_, pyo3::PyAny>> {
     match parsed {
         cryptography_key_parsing::ParsedPublicKey::Pkey(pkey) => {
             public_key_from_pkey(py, &pkey, pkey.id())
@@ -325,7 +333,7 @@ fn public_key_from_pkey<'p>(
     // `id` is a separate argument so we can test this while passing something
     // unsupported.
     match id {
-        openssl::pkey::Id::RSA => Ok(crate::backend::rsa::public_key_from_pkey(pkey)
+        openssl::pkey::Id::RSA => Ok(crate::backend::rsa::public_key_from_pkey(pkey)?
             .into_pyobject(py)?
             .into_any()),
         openssl::pkey::Id::EC => Ok(crate::backend::ec::public_key_from_pkey(py, pkey)?
@@ -358,7 +366,7 @@ fn public_key_from_pkey<'p>(
         openssl::pkey::Id::DSA => Ok(crate::backend::dsa::public_key_from_pkey(pkey)
             .into_pyobject(py)?
             .into_any()),
-        openssl::pkey::Id::DH => Ok(crate::backend::dh::public_key_from_pkey(pkey)
+        openssl::pkey::Id::DH => Ok(crate::backend::dh::public_key_from_pkey(py, pkey)?
             .into_pyobject(py)?
             .into_any()),
 
@@ -367,11 +375,15 @@ fn public_key_from_pkey<'p>(
             CRYPTOGRAPHY_IS_BORINGSSL,
             CRYPTOGRAPHY_IS_AWSLC
         )))]
-        openssl::pkey::Id::DHX => Ok(crate::backend::dh::public_key_from_pkey(pkey)
+        openssl::pkey::Id::DHX => Ok(crate::backend::dh::public_key_from_pkey(py, pkey)?
             .into_pyobject(py)?
             .into_any()),
-        #[cfg(any(CRYPTOGRAPHY_IS_BORINGSSL, CRYPTOGRAPHY_IS_AWSLC))]
-        id if cryptography_openssl::mlkem::is_mlkem_pkey_type(id) => {
+        #[cfg(any(
+            CRYPTOGRAPHY_IS_BORINGSSL,
+            CRYPTOGRAPHY_IS_AWSLC,
+            CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
+        ))]
+        _ if cryptography_openssl::mlkem::is_mlkem_pkey(pkey) => {
             match cryptography_openssl::mlkem::MlKemVariant::from_pkey(pkey) {
                 cryptography_openssl::mlkem::MlKemVariant::MlKem768 => {
                     Ok(crate::backend::mlkem::mlkem768_public_key_from_pkey(pkey)
@@ -386,8 +398,12 @@ fn public_key_from_pkey<'p>(
             }
         }
 
-        #[cfg(any(CRYPTOGRAPHY_IS_BORINGSSL, CRYPTOGRAPHY_IS_AWSLC))]
-        id if cryptography_openssl::mldsa::is_mldsa_pkey_type(id) => {
+        #[cfg(any(
+            CRYPTOGRAPHY_IS_BORINGSSL,
+            CRYPTOGRAPHY_IS_AWSLC,
+            CRYPTOGRAPHY_OPENSSL_350_OR_GREATER
+        ))]
+        _ if cryptography_openssl::mldsa::is_mldsa_pkey(pkey) => {
             match cryptography_openssl::mldsa::MlDsaVariant::from_pkey(pkey) {
                 cryptography_openssl::mldsa::MlDsaVariant::MlDsa44 => {
                     Ok(crate::backend::mldsa::mldsa44_public_key_from_pkey(pkey)
