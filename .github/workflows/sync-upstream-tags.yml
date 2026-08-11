@@ -22,7 +22,7 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
-          token: ${{ secrets.WORKFLOW_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Find missing upstream release tags
         id: diff
@@ -60,11 +60,11 @@ jobs:
       - name: Fetch and push new tags to fork
         if: steps.diff.outputs.latest_new != ''
         env:
-          WORKFLOW_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -euo pipefail
           git remote set-url origin \
-            "https://x-access-token:${WORKFLOW_TOKEN}@github.com/${{ github.repository }}"
+            "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}"
           while read -r TAG; do
             [ -z "$TAG" ] && continue
             echo "Mirroring $TAG"
