@@ -82,6 +82,22 @@ jobs:
             git push origin "refs/tags/$TAG"
           done < new_tags.txt
 
+      - name: Update main from upstream
+        if: steps.diff.outputs.latest_new != ''
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email \
+            "41898282+github-actions[bot]@users.noreply.github.com"
+
+          # The fork sits on top of upstream main adding only its own two
+          # workflow files, so this merge is expected to stay clean. If it
+          # ever conflicts, fail here rather than resolving it unattended:
+          # a human should look at what upstream changed.
+          git fetch https://github.com/pyca/cryptography.git main
+          git merge --no-edit FETCH_HEAD
+          git push origin HEAD:main
+
       - name: Trigger riscv64 build for latest new tag
         if: steps.diff.outputs.latest_new != ''
         env:
