@@ -22,7 +22,11 @@ jobs:
         with:
           fetch-depth: 0
           persist-credentials: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          # Must be the PAT, not GITHUB_TOKEN. persist-credentials writes this
+          # token into http.https://github.com/.extraheader, and that header
+          # takes precedence over credentials in the remote URL, so it decides
+          # what the tag push below authenticates as.
+          token: ${{ secrets.WORKFLOW_TOKEN }}
 
       - name: Find missing upstream release tags
         id: diff
