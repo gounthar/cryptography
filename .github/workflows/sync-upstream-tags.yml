@@ -60,11 +60,16 @@ jobs:
       - name: Fetch and push new tags to fork
         if: steps.diff.outputs.latest_new != ''
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # GITHUB_TOKEN cannot be used here. Mirroring an upstream tag carries
+          # the upstream tree, including .github/workflows, and GitHub rejects
+          # such a push from an App token without the `workflows` permission,
+          # which is not grantable in a workflow `permissions:` block. This
+          # needs a PAT with `repo` and `workflow` scopes.
+          WORKFLOW_TOKEN: ${{ secrets.WORKFLOW_TOKEN }}
         run: |
           set -euo pipefail
           git remote set-url origin \
-            "https://x-access-token:${GITHUB_TOKEN}@github.com/${{ github.repository }}"
+            "https://x-access-token:${WORKFLOW_TOKEN}@github.com/${{ github.repository }}"
           while read -r TAG; do
             [ -z "$TAG" ] && continue
             echo "Mirroring $TAG"
