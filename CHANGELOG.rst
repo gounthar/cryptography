@@ -8,6 +8,29 @@ Changelog
 
 .. note:: This version is not yet released and is under active development.
 
+* :func:`~cryptography.hazmat.primitives.serialization.load_der_private_key`
+  and :func:`~cryptography.hazmat.primitives.serialization.load_pem_private_key`
+  now accept :rfc:`5958` ``OneAsymmetricKey`` (PKCS8 version 2).
+* Deprecated DSA. Everything DSA is deprecated, including the types in
+  ``cryptography.hazmat.primitives.asymmetric.dsa`` and loading DSA keys with
+  the key loading APIs (including from X.509 certificates and certificate
+  signing requests). Users should migrate to a more modern signature
+  algorithm.
+* The ``*_into`` methods (e.g. ``encrypt_into``, ``update_into``, and
+  ``derive_into``) now raise ``ValueError`` if the input and output buffers
+  overlap. Previously, overlapping buffers could silently produce incorrect
+  output.
+
+.. _v50-0-2:
+
+50.0.2 - 2026-09-30
+~~~~~~~~~~~~~~~~~~~
+
+* Updated Windows, macOS, and Linux wheels to be compiled with OpenSSL 4.0.3.
+* Added ``abi3.abi3t`` wheels for free-threaded CPython 3.15 and later.
+* Updated to PyO3 0.29.2, which fixes building ``cryptography`` on Cygwin and
+  MSYS2.
+
 .. _v50-0-1:
 
 50.0.1 - 2026-08-25

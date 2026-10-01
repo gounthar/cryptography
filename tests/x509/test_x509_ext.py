@@ -11,7 +11,7 @@ import typing
 
 import pytest
 
-from cryptography import x509
+from cryptography import utils, x509
 from cryptography.hazmat._oid import _OID_NAMES
 from cryptography.hazmat.bindings._rust import x509 as rust_x509
 from cryptography.hazmat.primitives import hashes
@@ -1747,7 +1747,9 @@ class TestSubjectKeyIdentifierExtension:
         ext = cert.extensions.get_extension_for_oid(
             ExtensionOID.SUBJECT_KEY_IDENTIFIER
         )
-        ski = x509.SubjectKeyIdentifier.from_public_key(cert.public_key())
+        with pytest.warns(utils.DeprecatedIn51):
+            public_key = cert.public_key()
+        ski = x509.SubjectKeyIdentifier.from_public_key(public_key)
         assert ext.value == ski
 
     def test_invalid_bit_string_padding_from_public_key(self):
@@ -6134,6 +6136,24 @@ class TestPrecertificateSignedCertificateTimestampsExtension:
             x509.PrecertificateSignedCertificateTimestamps(
                 [typing.cast(typing.Any, object())]
             )
+
+    def test_public_bytes_oversized_list(self):
+        sct = (
+            _load_cert(
+                os.path.join("x509", "badssl-sct.pem"),
+                x509.load_pem_x509_certificate,
+            )
+            .extensions.get_extension_for_class(
+                x509.PrecertificateSignedCertificateTimestamps
+            )
+            .value[0]
+        )
+        # The serialized list must fit in a 16-bit length prefix.
+        scts = [sct] * 1000
+        with pytest.raises(ValueError, match="too large"):
+            x509.PrecertificateSignedCertificateTimestamps(scts).public_bytes()
+        with pytest.raises(ValueError, match="too large"):
+            x509.SignedCertificateTimestamps(scts).public_bytes()
 
     def test_repr(self):
         assert repr(x509.PrecertificateSignedCertificateTimestamps([])) == (
