@@ -8,6 +8,10 @@ Changelog
 
 .. note:: This version is not yet released and is under active development.
 
+* Require CFFI 2.1.1 or newer on Python 3.15 to avoid an ABI issue in
+  earlier CFFI releases.
+* X.509 names now reject IA5String attributes containing non-ASCII
+  characters when parsing and serializing.
 * :func:`~cryptography.hazmat.primitives.serialization.load_der_private_key`
   and :func:`~cryptography.hazmat.primitives.serialization.load_pem_private_key`
   now accept :rfc:`5958` ``OneAsymmetricKey`` (PKCS8 version 2).
@@ -20,6 +24,41 @@ Changelog
   ``derive_into``) now raise ``ValueError`` if the input and output buffers
   overlap. Previously, overlapping buffers could silently produce incorrect
   output.
+* Parsing a ``subjectAltName`` or ``issuerAltName`` extension now rejects an
+  empty ``GeneralNames`` sequence, matching the ``SIZE (1..MAX)`` constraint
+  RFC 5280 4.2.1.6/4.2.1.7 places on the field and the strictness already
+  applied to ``extendedKeyUsage``.
+* :class:`~cryptography.x509.ExtendedKeyUsage`,
+  :class:`~cryptography.x509.SubjectAlternativeName` and
+  :class:`~cryptography.x509.IssuerAlternativeName` now raise ``ValueError``
+  when constructed with an empty list. Building a certificate with one of
+  these produced an extension that the parser rejects, since RFC 5280
+  4.2.1.6/4.2.1.7/4.2.1.12 constrain all three fields to ``SIZE (1..MAX)``.
+* :meth:`~cryptography.hazmat.primitives.asymmetric.ec.EllipticCurvePrivateNumbers.private_key`
+  now raises ``ValueError`` when ``private_value`` is not smaller than the
+  curve's order, matching
+  :func:`~cryptography.hazmat.primitives.asymmetric.ec.derive_private_key` and
+  the private key loading functions.
+* :func:`~cryptography.hazmat.primitives.serialization.load_pem_private_key`
+  now raises ``ValueError`` for an encrypted traditional PEM whose
+  ``DEK-Info`` IV does not match the cipher's IV length. Previously, some
+  lengths raised ``PanicException``.
+* Added
+  :class:`~cryptography.hazmat.primitives.serialization.MLDSA44Ed25519PrivateKey`
+  and
+  :class:`~cryptography.hazmat.primitives.serialization.MLDSA44Ed25519PublicKey`,
+  composite ML-DSA-44 and Ed25519 keys for OpenSSH ``ssh-mldsa44-ed25519``
+  keys. These keys can be loaded with
+  :func:`~cryptography.hazmat.primitives.serialization.load_ssh_private_key`
+  and
+  :func:`~cryptography.hazmat.primitives.serialization.load_ssh_public_key`,
+  and serialized in the OpenSSH formats.
+* Added missing return type hints to
+  :meth:`~cryptography.hazmat.primitives.serialization.SSHCertificateBuilder.valid_for_all_principals`,
+  :meth:`~cryptography.hazmat.primitives.hashes.SHAKE128.xof`,
+  :meth:`~cryptography.hazmat.primitives.hashes.SHAKE256.xof` and
+  :meth:`~cryptography.hazmat.asn1.TLV.parse`. Previously, type checkers
+  treated their return values as ``Any``.
 
 .. _v50-0-2:
 
